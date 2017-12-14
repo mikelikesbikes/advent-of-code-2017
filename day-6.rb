@@ -1,5 +1,5 @@
-blocks = %w[0	5	10 0 11 14 13 4 11 8 8 7 1 4 12 11].map(&:to_i)
-test_blocks = [0, 2, 7, 0]
+
+require "rspec"
 
 def redistribute(blocks)
   blocks = blocks.dup
@@ -15,10 +15,28 @@ def redistribute(blocks)
   blocks
 end
 
+describe "redistribute" do
+  let(:blocks) { [0, 2, 7, 0] }
+
+  specify "peter pans the hell out of the rich" do
+    expect(redistribute(blocks)).to eq [2, 4, 1, 2]
+  end
+end
+
+# Part 1
+blocks = <<-BLOCK.split(/\s+/).map(&:to_i)
+0	5	10	0	11	14	13	4	11	8	8	7	1	4	12	11
+BLOCK
+
 configs = [blocks]
+
 until configs.include?(new_config = redistribute(configs.last))
   configs << new_config
 end
+
+puts configs.length
+
+# Part 2
 
 puts configs.length - configs.index(new_config)
 
