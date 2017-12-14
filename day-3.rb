@@ -1,21 +1,3 @@
-width = 605
-shift = (width - 1)/2
-grid = Array.new(width) { Array.new(width, nil) }
-
-cell = Cell.new
-x, y = cell.coord
-grid[x + shift][y + shift] = 1
-
-(2..605**2).each do |i|
-  x, y = cell.next
-  grid[y + shift][x + shift] = val = cell.adjacents.map { |gx, gy| grid[gy + shift][gx + shift] }.compact.sum
-  if val > 368078
-    p val
-    exit
-  end
-end
-puts grid.map{ |row| row.map { |i| i.to_s.ljust(4, " ") }.join(" ") }.join("\n")
-
 class Cell
   attr_reader :x, :y
 
@@ -32,19 +14,19 @@ class Cell
       @x += 1
       @dir += 1 if x == @layer
     when 1
-      @y -= 1
-      @dir += 1 if -y == @layer
+      @y += 1
+      @dir += 1 if y == @layer
     when 2
       @x -= 1
       @dir += 1 if -x == @layer
     when 3
-      @y += 1
-      if y == @layer
+      @y -= 1
+      if -y == @layer
         @dir = 0
         @layer += 1
       end
     end
-    [x, y]
+    self
   end
 
   def coord
@@ -54,4 +36,31 @@ class Cell
   def adjacents
     [[x + 1, y], [x + 1, y + 1], [x + 1, y - 1], [x - 1, y], [x - 1, y + 1], [x - 1, y - 1], [x, y + 1], [x, y - 1]]
   end
+
+  def distance(other)
+    xo, yo = other.coord
+    x, y = coord
+    (xo - x).abs + (yo - y).abs
+  end
 end
+
+# Part 1
+n = 368078
+
+origin = Cell.new
+cell = Cell.new
+(n-1).times { cell.next }
+
+puts cell.distance(origin)
+
+# Part 2
+grid = Hash.new { |h, k| h[k] = 0 }
+cell = Cell.new
+grid[cell.coord] = val = 1
+
+while val <= n
+  cell.next
+  grid[cell.coord] = val = cell.adjacents.sum { |coord| grid[coord] }
+end
+puts val
+
