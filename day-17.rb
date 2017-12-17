@@ -31,6 +31,20 @@ describe Spinlock do
       expect(spinlock.next).to eq [6, 8]
       expect(spinlock.next).to eq [1, 9]
     end
+
+    specify "the test case" do
+      array = [0]
+      block = -> { array.insert(*spinlock.next) }
+      expect(&block).to change{ array }.to [0, 1]
+      expect(&block).to change{ array }.to [0, 2, 1]
+      expect(&block).to change{ array }.to [0, 2, 3, 1]
+      expect(&block).to change{ array }.to [0, 2, 4, 3, 1]
+      expect(&block).to change{ array }.to [0, 5, 2, 4, 3, 1]
+      expect(&block).to change{ array }.to [0, 5, 2, 4, 3, 6, 1]
+      expect(&block).to change{ array }.to [0, 5, 7, 2, 4, 3, 6, 1]
+      expect(&block).to change{ array }.to [0, 5, 7, 2, 4, 3, 8, 6, 1]
+      expect(&block).to change{ array }.to [0, 9, 5, 7, 2, 4, 3, 8, 6, 1]
+    end
   end
 end
 
