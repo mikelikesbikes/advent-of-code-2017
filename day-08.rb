@@ -1,4 +1,198 @@
-instructions = <<-INPUT.split(/\n/).map { |s| s.split(/\s+/) }
+
+class CPU
+  attr_reader :all_time_max
+
+  def initialize
+    @registers = Hash.new { |h,k| h[k] = 0 }
+    @all_time_max = 0
+  end
+
+  def execute(program)
+    program.split("\n").each do |line|
+      name, op, value, _, compname, compop, compvalue = line.split(/\s+/)
+      next unless comp(compname, compop, compvalue.to_i)
+      case op
+      when "inc"
+        inc(name, value.to_i)
+      when
+        dec(name, value.to_i)
+      end
+    end
+  end
+
+  def inc(name, value)
+    set(name, get(name) + value)
+  end
+
+  def dec(name, value)
+    inc(name, -value)
+  end
+
+  def comp(name, op, value)
+    case op
+    when "=="
+      get(name) == value
+    when "!="
+      get(name) != value
+    when "<"
+      get(name)  < value
+    when "<="
+      get(name) <= value
+    when ">="
+      get(name) >= value
+    when ">"
+      get(name)  > value
+    else
+      raise "comparison operator `#{op}` not supported"
+    end
+  end
+
+  def get(name)
+    registers[name]
+  end
+
+  def set(name, value)
+    @all_time_max = value if value > @all_time_max
+
+    registers[name] = value
+  end
+
+  def current_max
+    registers.values.max
+  end
+
+  private
+
+  attr_reader :registers
+end
+
+require "rspec"
+describe CPU do
+  let(:cpu) { CPU.new }
+
+  describe "execute" do
+    specify "performs the specified operation" do
+      cpu.set("a", 0)
+
+      cpu.execute("a inc 100 if a < 1")
+      expect(cpu.get("a")).to eq 100
+
+      cpu.execute("a dec 100 if a > 1")
+      expect(cpu.get("a")).to eq 0
+
+      cpu.execute("b inc 3 if b > 1")
+      expect(cpu.get("b")).to eq 0
+
+      cpu.execute("b dec 3 if b > 1")
+      expect(cpu.get("b")).to eq 0
+
+      cpu.execute(<<~PROGRAM)
+        c inc 1 if c < 10
+        c inc 1 if c < 10
+        c inc 1 if c < 10
+        c dec 1 if c > 1
+        c dec 1 if c > 1
+        c dec 1 if c > 1
+      PROGRAM
+      expect(cpu.get("c")).to eq 1
+    end
+
+    specify "the test program" do
+      cpu.execute(<<~PROGRAM)
+      b inc 5 if a > 1
+      a inc 1 if b < 5
+      c dec -10 if a >= 1
+      c inc -20 if c == 10
+      PROGRAM
+
+      expect(cpu.current_max).to eq 1
+      expect(cpu.all_time_max).to eq 10
+    end
+  end
+
+  describe "inc" do
+    specify "increments given register" do
+      cpu.set("a", 5)
+      cpu.inc("a", 10)
+      expect(cpu.get("a")).to eq 15
+    end
+  end
+
+  describe "dec" do
+    specify "decrements the given register" do
+      cpu.set("a", 7)
+      cpu.dec("a", 2)
+      expect(cpu.get("a")).to eq 5
+    end
+  end
+
+  describe "current_max" do
+    specify "returns the largest value in any register" do
+      cpu.set("a", 7)
+      cpu.set("b", 100)
+      cpu.set("c", 42)
+
+      expect(cpu.current_max).to eq 100
+    end
+  end
+
+  describe "all_time_max" do
+    specify "returns the largest value ever seen" do
+      cpu.set("a", 10)
+      cpu.inc("a", 100)
+      cpu.dec("a", 20)
+
+      expect(cpu.all_time_max).to eq 110
+    end
+  end
+
+  describe "comp" do
+    LEGAL_COPS = ["<", "==", ">", "<=", "!=", ">="]
+    specify "==" do
+      cpu.set("a", 7)
+      expect(cpu.comp("a", "==", 6)).to eq false
+      expect(cpu.comp("a", "==", 7)).to eq true
+      expect(cpu.comp("a", "==", 8)).to eq false
+    end
+
+    specify "!=" do
+      cpu.set("a", 7)
+      expect(cpu.comp("a", "!=", 6)).to eq true
+      expect(cpu.comp("a", "!=", 7)).to eq false
+      expect(cpu.comp("a", "!=", 8)).to eq true
+    end
+
+    specify "<" do
+      cpu.set("a", 7)
+      expect(cpu.comp("a", "<", 6)).to eq false
+      expect(cpu.comp("a", "<", 7)).to eq false
+      expect(cpu.comp("a", "<", 8)).to eq true
+    end
+
+    specify "<=" do
+      cpu.set("a", 7)
+      expect(cpu.comp("a", "<=", 6)).to eq false
+      expect(cpu.comp("a", "<=", 7)).to eq true
+      expect(cpu.comp("a", "<=", 8)).to eq true
+    end
+
+    specify ">=" do
+      cpu.set("a", 7)
+      expect(cpu.comp("a", ">=", 6)).to eq true
+      expect(cpu.comp("a", ">=", 7)).to eq true
+      expect(cpu.comp("a", ">=", 8)).to eq false
+    end
+
+    specify ">" do
+      cpu.set("a", 7)
+      expect(cpu.comp("a", ">", 6)).to eq true
+      expect(cpu.comp("a", ">", 7)).to eq false
+      expect(cpu.comp("a", ">", 8)).to eq false
+    end
+  end
+end
+
+program = <<-PROGRAM
 ebu inc 626 if iq < 0
 obc dec -809 if sdw == -2
 vb inc 568 if k > -2
@@ -999,36 +1193,13 @@ w inc -504 if n == -745
 vjx inc -100 if kxm < -996
 j dec -699 if tzy > 3577
 wui inc -120 if i > -2038
-INPUT
+PROGRAM
 
-test_instructions = <<-INPUT.split(/\n/).map { |s| s.split(/\s+/) }
-b inc 5 if a > 1
-a inc 1 if b < 5
-c dec -10 if a >= 1
-c inc -20 if c == 10
-INPUT
+cpu = CPU.new
+cpu.execute(program)
 
-def inc(registers, reg, val)
-  new_val = registers[reg] += val
-  @max_val ||= 0
-  @max_val = new_val if @max_val < new_val
-end
+# Part 1
+puts cpu.current_max
 
-def dec(registers, reg, val)
-  inc(registers, reg, -val)
-end
-
-LEGAL_COPS = ["<", "==", ">", "<=", "!=", ">="]
-LEGAL_TOPS = %w(inc dec)
-
-registers = Hash.new { |h,k| h[k] = 0 }
-
-instructions.each do |treg, top, tval, _, creg, cop, cval|
-  raise "NOPE" unless LEGAL_COPS.include?(cop)
-  raise "NOPE" unless LEGAL_TOPS.include?(top)
-
-  send(top.to_sym, registers, treg, tval.to_i) if registers[creg].send(cop.to_sym, cval.to_i)
-end
-
-puts registers.values.max
-puts @max_val
+# Part 2
+puts cpu.all_time_max
