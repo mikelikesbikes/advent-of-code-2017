@@ -1,23 +1,23 @@
 require "rspec"
 class Spinlock
-  attr_reader :seed, :pos, :value, :length
+  attr_reader :step_size, :pos, :value, :length
 
-  def initialize(seed:)
-    @seed = seed
+  def initialize(step_size:)
+    @step_size = step_size
     @pos = 0
     @value = 0
     @length = 1
   end
 
   def next(&block)
-    @pos = ((pos + seed) % @length) + 1
+    @pos = ((pos + step_size) % @length) + 1
     @value += 1
     @length += 1
     [pos, value]
   end
 end
 describe Spinlock do
-  let(:spinlock) { described_class.new(seed: 3) }
+  let(:spinlock) { described_class.new(step_size: 3) }
 
   describe "next" do
     specify "returns position and value" do
@@ -36,8 +36,10 @@ end
 
 return if /rspec$/ === $PROGRAM_NAME
 
+STEP_SIZE = 329
+
 # Part 1
-spinlock = Spinlock.new(seed: 329)
+spinlock = Spinlock.new(step_size: STEP_SIZE)
 array = [0]
 2017.times do
   array.insert(*spinlock.next)
@@ -45,10 +47,10 @@ end
 puts array[spinlock.pos + 1]
 
 # Part 2
-spinlock = Spinlock.new(seed: 329)
+spinlock = Spinlock.new(step_size: STEP_SIZE)
 
 last_value = nil
-50_000_000.times do |i|
+50_000_000.times do
   pos, value = spinlock.next
   last_value = value if pos == 1
 end
