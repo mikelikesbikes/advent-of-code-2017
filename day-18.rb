@@ -390,9 +390,6 @@ describe ThreadedDuet do
         end
       end
 
-      d0.terminate!
-      d1.terminate!
-
       t0.join
       t1.join
 
