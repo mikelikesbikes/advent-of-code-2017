@@ -1,24 +1,15 @@
 require "rspec"
 
 class PathFollower
-  HEADINGS = [:down, :left, :up, :right].freeze
-  attr_reader :path, :heading, :waypoints, :steps
-  attr_writer :heading
+  attr_reader :path, :waypoints, :steps
+  attr_accessor :position, :heading
 
   def initialize(path)
     @path = path.split(/\n/)
-    @row, @col = find_trailhead
     @waypoints = []
-    @heading = :down
     @steps = 1
-  end
-
-  def position
-    [@row, @col]
-  end
-
-  def position=(pos)
-    @row, @col = pos
+    self.position = find_trailhead
+    self.heading = :down
   end
 
   def walk
@@ -30,7 +21,6 @@ class PathFollower
 
     return false unless path_at(*next_position)
 
-    @steps += 1
     advance
     record_waypoint if /[A-Z]/ === path_at(*position)
 
@@ -38,7 +28,8 @@ class PathFollower
   end
 
   def next_position
-    return case heading
+    row, col = position
+    case heading
     when :down
       [row + 1, col]
     when :up
@@ -51,7 +42,8 @@ class PathFollower
   end
 
   def advance
-    @row, @col = next_position
+    @steps += 1
+    self.position = next_position
   end
 
   def turn
@@ -62,7 +54,7 @@ class PathFollower
       [:up, :down]
     end
 
-    @heading = possible_headings.find do |new_heading|
+    self.heading = possible_headings.find do |new_heading|
       move_possible?(new_heading)
     end
   end
@@ -72,9 +64,9 @@ class PathFollower
   end
 
   private
-  attr_accessor :row, :col
 
   def move_possible?(heading)
+    row, col = position
     case heading
     when :down
       path_at(row + 1, col)
