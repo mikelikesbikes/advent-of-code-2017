@@ -7,7 +7,7 @@ class PathFollower
   def initialize(path)
     @path = path.split(/\n/)
     @waypoints = []
-    @steps = 1
+    inc_steps
     self.position = find_trailhead
     self.heading = :down
   end
@@ -17,14 +17,9 @@ class PathFollower
   end
 
   def step
-    turn if path_at(*position) == "+"
-
-    return false unless path_at(*next_position)
-
-    advance
-    record_waypoint if /[A-Z]/ === path_at(*position)
-
-    true
+    turn
+    return nil unless path_at(*next_position)
+    advance.tap { record_waypoint }
   end
 
   def next_position
@@ -42,11 +37,12 @@ class PathFollower
   end
 
   def advance
-    @steps += 1
+    inc_steps
     self.position = next_position
   end
 
   def turn
+    return unless path_at(*position) == "+"
     possible_headings = case heading
     when :up, :down
       [:right, :left]
@@ -60,10 +56,16 @@ class PathFollower
   end
 
   def record_waypoint
-    waypoints << path_at(*position)
+    return unless /[A-Z]/ === (path_marker = path_at(*position))
+    waypoints << path_marker
   end
 
   private
+
+  def inc_steps
+    @steps ||= 0
+    @steps += 1
+  end
 
   def move_possible?(heading)
     row, col = position
@@ -80,8 +82,9 @@ class PathFollower
   end
 
   def path_at(row, col)
-    return nil unless (0...path.length).include?(row)
-    return nil unless (0...path[row].length).include?(col)
+    return nil if row < 0 || row > path.length
+    return nil if col < 0 || col > path[row].length
+
     path[row][col] == " " ? nil : path[row][col]
   end
 
