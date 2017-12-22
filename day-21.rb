@@ -240,10 +240,12 @@ RULES
 
 return if /rspec$/ === $PROGRAM_NAME
 
+# Part 1
 art = FractalArt.new(enhancement_rules)
 5.times { art.enhance }
 puts art.on_count
 
+# Part 2
 art = FractalArt.new(enhancement_rules)
 18.times { art.enhance }
 puts art.on_count
